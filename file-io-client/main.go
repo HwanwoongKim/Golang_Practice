@@ -45,19 +45,20 @@ func main() {
 
 	for {
 		numBytes, err := stream.Read(buffer)
+		println(numBytes)
+		bin_len += numBytes
+		log.Printf("Received: %s\n", buffer[:numBytes])
+		file_bin = append(file_bin, buffer[:numBytes]...)
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
-		println(numBytes)
-		bin_len += numBytes
-		log.Printf("Received: %s\n", buffer[:numBytes])
-		file_bin = append(file_bin, buffer[:numBytes]...)
 	}
 
 	file_n := bin_len / 512
+	println(bin_len, file_n)
 	files := make([][]byte, file_n)
 
 	directory := "./"
