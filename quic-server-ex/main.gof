@@ -1,0 +1,63 @@
+package main
+
+import (
+	"crypto/tls"
+	"log"
+
+	"github.com/quic-go/quic-go"
+	"golang.org/x/net/context"
+)
+
+func main() {
+	cert, err := tls.LoadX509KeyPair("/Users/hwanwoong/minica.pem", "/Users/hwanwoong/minica-key.pem")
+	if err != nil {
+		log.Fatal("Error loading certificate:", err)
+	}
+	tlsConfig := &tls.Config{
+
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true,                       // For testing purposes only
+		NextProtos:         []string{"h3", "http/1.1"}, // Enable QUIC and HTTP/3
+	}
+	listener, err := quic.ListenAddr("localhost:8080", tlsConfig, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer listener.Close()
+	log.Println("QUIC server started on localhost:8080")
+
+	for {
+		connection, err := listener.Accept(context.Background())
+		if err != nil {
+			log.Fatal(err)
+		}
+		go handleSession(connection)
+	}
+}
+
+func handleSession(connection quic.Connection) {
+	println("New connection established:", connection.RemoteAddr().String())
+	for {
+		stream, err := connection.AcceptStream(context.Background())
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		go handleRequest(stream)
+	}
+}
+
+func handleRequest(stream quic.ReceiveStream) {
+	buffer := make([]byte, 8)
+
+	for {
+		numBytes, err := stream.Read(buffer)
+		if err != nil {
+			log.Fatal(err)
+		}
+		println(numBytes)
+
+		log.Printf("Received: %s\n", buffer[:numBytes])
+	}
+
+}

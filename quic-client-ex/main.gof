@@ -1,0 +1,58 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"log"
+	"net/http"
+	"time"
+
+	"github.com/quic-go/quic-go"
+)
+
+func main() {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // testing only
+		NextProtos:         []string{"h3", "http/1.1"},
+	}
+	url := "localhost:8080"
+	req, _ := http.NewRequest("GET", url, nil)
+	var buf bytes.Buffer
+	req.Write(&buf)
+
+	var src string
+
+	ctx := context.Background()
+	connection, err := quic.DialAddr(ctx, url, tlsConfig, nil)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	stream, err := connection.OpenStreamSync(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	println("Input your message :: ")
+	src = "test text"
+	var send_p []byte = []byte(src)
+
+	_, err2 := stream.Write(send_p)
+
+	if err2 != nil {
+		log.Fatal(err)
+	}
+	err2 = stream.Close()
+
+	/*
+		_, err3 := stream.Write(send_p)
+
+		if err3 != nil {
+			log.Fatal(err)
+		}
+	*/
+}

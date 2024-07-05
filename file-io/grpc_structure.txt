@@ -1,0 +1,14 @@
+grpc-server-ex
+├── data
+│   └── user.go
+├── go.mod
+├── go.sum
+├── main.go
+└── protos
+    └── v1
+        └── user
+            ├── user.pb.go
+            ├── user.proto
+            └── user_grpc.pb.go
+
+5 directories, 7 files

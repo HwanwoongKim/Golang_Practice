@@ -1,0 +1,63 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"log"
+	"net/http"
+
+	"github.com/quic-go/quic-go"
+)
+
+func main() {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, // testing only
+		NextProtos:         []string{"h3", "http/1.1"},
+	}
+	url := "localhost:8080"
+	req, _ := http.NewRequest("GET", url, nil)
+	var buf bytes.Buffer
+	req.Write(&buf)
+	requestBytes := buf.Bytes()
+
+	ctx := context.Background()
+	connection, err := quic.DialAddr(ctx, url, tlsConfig, nil)
+	if err != nil {
+		println(err.Error())
+		return
+	}
+
+	stream, err := connection.OpenStreamSync(context.Background())
+
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	n, err := stream.Write(requestBytes)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err = stream.Close(); err != nil {
+		log.Fatal(err)
+	}
+
+	println("ok")
+	println(n)
+
+	stream2, err2 := connection.OpenStreamSync(context.Background())
+
+	if err2 != nil {
+		log.Fatal(err2)
+		return
+	}
+	n2, err3 := stream2.Write(requestBytes)
+	if err3 != nil {
+		log.Fatal(err3)
+	}
+	if err3 = stream2.Close(); err3 != nil {
+		log.Fatal(err3)
+	}
+	println("ok")
+	println(n2)
+}
