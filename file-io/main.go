@@ -46,29 +46,25 @@ func handleSession(connection quic.Connection) {
 
 	ctx := context.Background()
 
-	for {
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		stream, err := connection.OpenUniStreamSync(ctx)
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		go handleRequest(stream)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	stream, err := connection.OpenStreamSync(ctx)
+	if err != nil {
+		log.Fatal(err)
+		return
 	}
+	go handleRequest(stream)
 }
 
 func handleRequest(stream quic.SendStream) {
+	file_bin := read_file()
 
-	for {
-		file_bin := read_file()
-		_, err := stream.Write(file_bin)
+	_, err := stream.Write(file_bin)
 
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = stream.Close()
+	if err != nil {
+		log.Fatal(err)
 	}
+	err = stream.Close()
 }
 
 func read_file() []byte {

@@ -4,8 +4,12 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/quic-go/quic-go"
 )
@@ -26,22 +30,58 @@ func main() {
 		println(err.Error())
 		return
 	}
+	println("Connection Established")
 
-	stream, err := connection.AcceptStream(context.Background())
+	stream, err := connection.AcceptStream(ctx)
+	println("Stream Connection Accepted")
 	if err != nil {
 		println(err.Error())
 		return
 	}
 
-	buffer := make([]byte, 8)
+	buffer := make([]byte, 64)
+	file_bin := make([]byte, 0)
+	bin_len := 0
 
 	for {
 		numBytes, err := stream.Read(buffer)
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
 		println(numBytes)
-
+		bin_len += numBytes
 		log.Printf("Received: %s\n", buffer[:numBytes])
+		file_bin = append(file_bin, buffer[:numBytes]...)
 	}
+
+	file_n := bin_len / 512
+	files := make([][]byte, file_n)
+
+	directory := "./"
+
+	for i := 0; i < file_n; i++ {
+		files[i] = make([]byte, 512)
+		copy(files[i], file_bin[i*512:(i+1)*512])
+		file_str := []string{directory, strconv.Itoa(i)}
+
+		println(files[i], i)
+		println(strings.Join(file_str, ""))
+		makefile(files[i], strings.Join(file_str, ""))
+	}
+}
+
+func makefile(file_bin []byte, filename string) {
+	var err error
+	var file *os.File
+
+	file, err = os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(file_bin)
 }
