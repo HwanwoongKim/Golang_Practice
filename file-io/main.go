@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"log"
 
+	"github.com/klauspost/reedsolomon"
 	"github.com/quic-go/quic-go"
 	"golang.org/x/net/context"
 )
@@ -67,7 +68,8 @@ func handleRequest(stream quic.SendStream) {
 }
 
 func read_file() []byte {
-	var total_file []byte
+	var total_file [][]byte
+	file_n := 0
 	filepath := []string{"./grpc_structure.txt", "./test_restoring.txt"}
 
 	file := make([]*os.File, len(filepath))
@@ -113,10 +115,12 @@ func read_file() []byte {
 
 			copy(file_padding[:fileSize], file_bin)
 
-			total_file = append(total_file, file_padding...)
+			total_file = append(total_file, make([][]byte, 1)...)
+			total_file[i] = append(total_file[i], file_padding...)
 
 			// Process the binary data here
 			fmt.Printf("Read %d bytes from file:\n", fileSize)
+			file_n += 1
 		}
 	}
 
@@ -126,6 +130,21 @@ func read_file() []byte {
 	for _, file := range file {
 		file.Close()
 	}
+	total_file = append(total_file, make([][]byte, 1)...)
+	total_file[file_n] = append(total_file[file_n], make([]byte, 512)...)
+	enc, err := reedsolomon.New(2, 1)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	return total_file
+	err = enc.Encode(total_file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	real_total := make([]byte, 512*(file_n+1))
+	for i := 0; i < file_n+1; i++ {
+		copy(real_total[i*512:(i+1)*512], total_file[i])
+	}
+
+	return real_total
 }
