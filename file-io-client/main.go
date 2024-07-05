@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/binary"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -47,7 +49,7 @@ func main() {
 		numBytes, err := stream.Read(buffer)
 		println(numBytes)
 		bin_len += numBytes
-		log.Printf("Received: %s\n", buffer[:numBytes])
+		//log.Printf("Received: %s\n", buffer[:numBytes])
 		file_bin = append(file_bin, buffer[:numBytes]...)
 		if err == io.EOF {
 			break
@@ -58,7 +60,7 @@ func main() {
 	}
 
 	file_n := bin_len / 512
-	println(bin_len, file_n)
+	//println(bin_len, file_n)
 	files := make([][]byte, file_n)
 
 	directory := "./"
@@ -68,8 +70,8 @@ func main() {
 		copy(files[i], file_bin[i*512:(i+1)*512])
 		file_str := []string{directory, strconv.Itoa(i)}
 
-		println(files[i], i)
-		println(strings.Join(file_str, ""))
+		//println(files[i], i)
+		//println(strings.Join(file_str, ""))
 		makefile(files[i], strings.Join(file_str, ""))
 	}
 }
@@ -77,6 +79,21 @@ func main() {
 func makefile(file_bin []byte, filename string) {
 	var err error
 	var file *os.File
+	var real_file_len int
+
+	for i := 0; i < len(file_bin); i++ {
+		if file_bin[i] == byte(0) {
+			real_file_len = i
+			println(real_file_len)
+			break
+		}
+	}
+
+	file_real := make([]byte, real_file_len)
+	file_real = file_bin[:real_file_len]
+
+	fmt.Println(file_real)
+	fmt.Println(file_bin)
 
 	file, err = os.Create(filename)
 	if err != nil {
@@ -84,5 +101,5 @@ func makefile(file_bin []byte, filename string) {
 	}
 	defer file.Close()
 
-	_, err = file.Write(file_bin)
+	err = binary.Write(file, binary.LittleEndian, &file_real)
 }
