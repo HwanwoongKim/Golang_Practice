@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"os"
@@ -102,29 +101,17 @@ func read_file() []byte {
 				return make([]byte, 0)
 			}
 			fileSize := fileInfo.Size()
-
-			// Create a byte slice to read the file
-			data := make([]byte, fileSize)
+			file_padding := make([]byte, 512)
+			file_bin := make([]byte, fileSize)
 
 			// Read file content into the byte slice
-			_, err = file[i].Read(data)
+			err = binary.Read(file[i], binary.LittleEndian, &file_bin)
 			if err != nil {
 				fmt.Println("Error reading file:", err)
 				return make([]byte, 0)
 			}
 
-			file_padding := make([]byte, 512)
-			file_bin := make([]byte, fileSize)
-
-			buf := bytes.NewBuffer(data)
-			err = binary.Read(buf, binary.LittleEndian, &file_bin)
 			copy(file_padding[:fileSize], file_bin)
-
-			if err != nil {
-				fmt.Println("binary read failed:", err)
-			}
-			//fmt.Println(file_bin)
-			//fmt.Println(file_padding)
 
 			total_file = append(total_file, file_padding...)
 
