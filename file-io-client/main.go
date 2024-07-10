@@ -18,6 +18,7 @@ import (
 )
 
 func main() {
+
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true, // testing only
 		NextProtos:         []string{"h3", "http/1.1"},
@@ -49,7 +50,7 @@ func main() {
 	for {
 		numBytes, err := stream.Read(buffer)
 		bin_len += numBytes
-		//log.Printf("Received: %s\n", buffer[:numBytes])
+		log.Printf("Received: %s\n", buffer[:numBytes])
 		file_bin = append(file_bin, buffer[:numBytes]...)
 		if err == io.EOF {
 			break
@@ -59,25 +60,30 @@ func main() {
 		}
 	}
 
-	file_n := bin_len / 512
+	file_n := ((bin_len / 512) + 1) / 2
+	println(file_n)
 
-	enc, err := reedsolomon.New(2, 1)
+	enc, err := reedsolomon.New(file_n, file_n-1)
 	if err != nil {
+		println("It has RS ERROR")
 		log.Fatal(err)
 	}
 
-	rs_bin := make([][]byte, file_n)
+	rs_bin := make([][]byte, file_n*2-1)
 
-	for i := 0; i < file_n; i++ {
+	for i := 0; i < file_n*2-1; i++ {
 		rs_bin[i] = append(rs_bin[i], file_bin[i*512:(i+1)*512]...)
 	}
 
-	rs_bin[0] = nil
+	rs_bin[1] = nil
+	rs_bin[4] = nil
+	rs_bin[5] = nil
 
 	fmt.Println(rs_bin)
 	err = enc.Reconstruct(rs_bin)
 
 	if err != nil {
+		println("It has RS ReConstruct ERROR")
 		log.Fatal(err)
 	}
 

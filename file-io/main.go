@@ -58,11 +58,23 @@ func handleSession(connection quic.Connection) {
 
 func handleRequest(stream quic.SendStream) {
 	file_bin := read_file()
+	var err error
+	//_, err := stream.Write(file_bin)
+	println(len(file_bin))
 
-	_, err := stream.Write(file_bin)
+	for i := 0; i < len(file_bin); i += 64 {
+		var file_bin_sep []byte
+		if i+64 > len(file_bin) {
+			file_bin_sep = file_bin[i:]
+		} else {
+			file_bin_sep = file_bin[i:(i + 64)]
+		}
+		_, err = stream.Write(file_bin_sep)
 
-	if err != nil {
-		log.Fatal(err)
+		if err != nil {
+			log.Fatal(err)
+		}
+		println("Sended Packet : ", i+64)
 	}
 	err = stream.Close()
 }
@@ -70,7 +82,8 @@ func handleRequest(stream quic.SendStream) {
 func read_file() []byte {
 	var total_file [][]byte
 	file_n := 0
-	filepath := []string{"./grpc_structure.txt", "./test_restoring.txt"}
+	filepath := []string{"./grpc_structure.txt", "./test_restoring.txt", "./etri_hwkim.txt", "./hellotext.txt"}
+	//filepath := []string{"./grpc_structure.txt", "./etri_hwkim.txt", "./test_restoring.txt"}
 
 	file := make([]*os.File, len(filepath))
 
@@ -130,9 +143,13 @@ func read_file() []byte {
 	for _, file := range file {
 		file.Close()
 	}
-	total_file = append(total_file, make([][]byte, 1)...)
-	total_file[file_n] = append(total_file[file_n], make([]byte, 512)...)
-	enc, err := reedsolomon.New(2, 1)
+	for i := 0; i < file_n-1; i++ {
+		total_file = append(total_file, make([][]byte, 1)...)
+		total_file[file_n+i] = append(total_file[file_n+i], make([]byte, 512)...)
+	}
+	//total_file = append(total_file, make([][]byte, 1)...)
+	//total_file[file_n] = append(total_file[file_n], make([]byte, 512)...)
+	enc, err := reedsolomon.New(file_n, file_n-1)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -141,7 +158,7 @@ func read_file() []byte {
 	if err != nil {
 		log.Fatal(err)
 	}
-	real_total := make([]byte, 512*(file_n+1))
+	real_total := make([]byte, 512*(file_n*2-1))
 	for i := 0; i < file_n+1; i++ {
 		copy(real_total[i*512:(i+1)*512], total_file[i])
 	}
