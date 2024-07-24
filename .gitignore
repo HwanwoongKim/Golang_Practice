@@ -2,3 +2,6 @@
 file-io-client/.DS_Store
 file-io/etri_hwkim.txt
 file-io/hellotext.txt
+file-io/go.mod
+string-contains/go.mod
+file-io/go.sum
