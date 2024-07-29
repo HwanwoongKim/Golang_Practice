@@ -75,6 +75,12 @@ func main() {
 		rs_bin[i] = append(rs_bin[i], file_bin[i*512:(i+1)*512]...)
 	}
 
+	rs_temp := make([]byte, 512)
+
+	rs_temp = rs_bin[0]
+	rs_bin[0] = rs_bin[2]
+	rs_bin[2] = rs_temp
+
 	rs_bin[1] = nil
 	rs_bin[4] = nil
 	rs_bin[5] = nil
